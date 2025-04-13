@@ -19,16 +19,14 @@ String decrypt(String encryptedBase64) {
   final secretKey = dotenv.env['SECRET_KEY']!;
   final key = encrypt.Key.fromUtf8(secretKey);
 
-  final data = base64.decode(encryptedBase64);
+  final data = base64.decode(encryptedBase64.trim());
   final iv = encrypt.IV(Uint8List.fromList(data.sublist(0, 16)));
-  final encrypted = data.sublist(16);
+  final encryptedData = data.sublist(16);
 
   final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
-  final decrypted = encrypter.decrypt(encrypt.Encrypted(Uint8List.fromList(encrypted)), iv: iv);
+  final decrypted = encrypter.decrypt(encrypt.Encrypted(Uint8List.fromList(encryptedData)), iv: iv);
 
-  // Eliminamos padding PKCS7 manualmente (opcional si no usas built-in padding)
-  //final pad = decrypted.codeUnitAt(decrypted.length - 1);
-  return decrypted;//.substring(0, decrypted.length - pad);
+  return decrypted;
 }
 
 class MyApp extends StatelessWidget {
@@ -303,7 +301,7 @@ class _UsersPageState extends State<UsersPage> {
                   itemCount: filteredUsers.length,
                   itemBuilder: (context, index) {
                     final user = filteredUsers[index];
-                    final dni = decrypt(user['dni']).toUpperCase();
+                    final dni = user['dni'].toUpperCase();
                     final email = user['email'];
                     final name = user['name'];
                     final phone = user['phone'];
