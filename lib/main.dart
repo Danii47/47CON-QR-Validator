@@ -19,14 +19,18 @@ String decrypt(String encryptedBase64) {
   final secretKey = dotenv.env['SECRET_KEY']!;
   final key = encrypt.Key.fromUtf8(secretKey);
 
-  final data = base64.decode(encryptedBase64.trim());
-  final iv = encrypt.IV(Uint8List.fromList(data.sublist(0, 16)));
-  final encryptedData = data.sublist(16);
+  try {
+    final data = base64.decode(encryptedBase64.trim());
+    final iv = encrypt.IV(Uint8List.fromList(data.sublist(0, 16)));
+    final encryptedData = data.sublist(16);
 
-  final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
-  final decrypted = encrypter.decrypt(encrypt.Encrypted(Uint8List.fromList(encryptedData)), iv: iv);
+    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+    final decrypted = encrypter.decrypt(encrypt.Encrypted(Uint8List.fromList(encryptedData)), iv: iv);
 
-  return decrypted;
+    return decrypted;
+  } catch (e) {
+    return "-";
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -35,7 +39,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Validador QR',
+      title: '47COn QR Validación',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -52,7 +56,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Validación QR'),
+        title: const Text('47CON QR Validación'),
       ),
       body: Center(
         child: Column(
@@ -159,7 +163,6 @@ class _ScannerPageState extends State<ScannerPage> {
       ),
       body: Column(
         children: [
-          // El widget MobileScanner ocupa la mayor parte de la pantalla
           Expanded(
             flex: 4,
             child: MobileScanner(
@@ -230,7 +233,11 @@ class _UsersPageState extends State<UsersPage> {
     final data = snapshot.docs.map((doc) => doc.data()).toList();
 
     setState(() {
-      users = data.cast<Map<String, dynamic>>();
+      users = data.cast<Map<String, dynamic>>()
+          .map((user) {
+              user['dni'] = decrypt(user['dni']);
+              return user;
+          }).toList();
       filteredUsers = users;
     });
   }
@@ -239,7 +246,7 @@ class _UsersPageState extends State<UsersPage> {
     setState(() {
       searchText = value.toLowerCase();
       filteredUsers = users.where((user) {
-        final dni = decrypt(user['dni']?.toString().toLowerCase() ?? '');
+        final dni = user['dni']?.toString().toLowerCase() ?? '';
         final email = user['email']?.toString().toLowerCase() ?? '';
         final name = user['name']?.toString().toLowerCase() ?? '';
         final phone = user['phone']?.toString() ?? '';
@@ -281,12 +288,17 @@ class _UsersPageState extends State<UsersPage> {
                 }
 
                 final docs = snapshot.data!.docs;
-                users = docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+                users = docs.map((doc) => doc.data() as Map<String, dynamic>)
+                    .map((user) {
+                      user['dni'] = decrypt(user['dni']);
+                      return user;
+                    })
+                    .toList();
 
                 filteredUsers = searchText.isEmpty
                     ? users
                     : users.where((user) {
-                        final dni = decrypt(user['dni']?.toString().toLowerCase() ?? '');
+                        final dni = user['dni']?.toString().toLowerCase() ?? '';
                         final email = user['email']?.toString().toLowerCase() ?? '';
                         final name = user['name']?.toString().toLowerCase() ?? '';
                         final phone = user['phone']?.toString() ?? '';
@@ -314,6 +326,7 @@ class _UsersPageState extends State<UsersPage> {
                             name,
                             style: TextStyle(
                               color: used ? Colors.grey : Colors.black,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                           subtitle: Text(
@@ -328,17 +341,16 @@ class _UsersPageState extends State<UsersPage> {
                           ),
                           tileColor: used ? Colors.grey.shade200 : null,
                         ),
-                        const Divider(height: 1),
-                      ],
+                        const Divider(height: 1)
+                      ]
                     );
-                  },
+                  }
                 );
-              },
-            ),
+              }
+            )
           )
-
-        ],
-      ),
+        ]
+      )
     );
   }
 }
