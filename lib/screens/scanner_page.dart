@@ -64,7 +64,7 @@ class _ScannerPageState extends State<ScannerPage> {
       return;
     }
 
-    await docRef.update({ 'used': true });
+    await docRef.update({ 'used': true, 'scanTimestamp': DateTime.now().millisecondsSinceEpoch });
 
     final player = AudioPlayer();
     await player.play(AssetSource('sounds/success.mp3'));
